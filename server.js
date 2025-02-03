@@ -59,7 +59,15 @@ app.get('/api/webcams', async (req, res) => {
                 webcam.location.latitude,
                 webcam.location.longitude
             );
-            console.log(`Webcam ${webcam.title} at ${webcam.location.city}, ${webcam.location.country} is ${distance.toFixed(2)}km away`);
+            
+            // Add more detailed logging for debugging
+            if (distance <= maxDistance * 2) { // Log webcams up to 2x the max distance for verification
+                console.log(`[NEARBY] ${webcam.title} at ${webcam.location.city}, ${webcam.location.country}`);
+                console.log(`  - Coordinates: (${webcam.location.latitude}, ${webcam.location.longitude})`);
+                console.log(`  - Distance: ${distance.toFixed(2)}km`);
+                console.log(`  - Target: (${lat}, ${lon})`);
+            }
+            
             return distance <= maxDistance;
         });
 
@@ -84,17 +92,22 @@ app.get('/api/webcams', async (req, res) => {
     }
 });
 
-// Helper function to calculate distance between two points
+// Update the calculateDistance function to add more precision
 function calculateDistance(lat1, lon1, lat2, lon2) {
     const R = 6371; // Earth's radius in kilometers
+    const lat1Rad = lat1 * Math.PI / 180;
+    const lat2Rad = lat2 * Math.PI / 180;
     const dLat = (lat2 - lat1) * Math.PI / 180;
     const dLon = (lon2 - lon1) * Math.PI / 180;
+    
     const a = 
         Math.sin(dLat/2) * Math.sin(dLat/2) +
-        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+        Math.cos(lat1Rad) * Math.cos(lat2Rad) * 
         Math.sin(dLon/2) * Math.sin(dLon/2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    return R * c;
+    const distance = R * c;
+    
+    return distance;
 }
 
 app.get('/api/webcams/:id/player', async (req, res) => {
