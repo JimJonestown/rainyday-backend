@@ -59,7 +59,7 @@ app.get('/api/webcams', async (req, res) => {
                 webcam.location.latitude,
                 webcam.location.longitude
             );
-            console.log(`Webcam ${webcam.id} at ${webcam.location.city}, ${webcam.location.country} is ${distance.toFixed(2)}km away`);
+            console.log(`Webcam ${webcam.title} at ${webcam.location.city}, ${webcam.location.country} is ${distance.toFixed(2)}km away`);
             return distance <= maxDistance;
         });
 
