@@ -29,21 +29,28 @@ const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
 app.get('/api/webcams', async (req, res) => {
     try {
-        const { lat, lon } = req.query;
+        const { lat, lon, limit = '50', radius = '50' } = req.query;
         if (!lat || !lon) {
             return res.status(400).json({ error: 'Latitude and longitude are required' });
         }
 
         // Check cache
-        const cacheKey = `${lat},${lon}`;
+        const cacheKey = `${lat},${lon},${radius},${limit}`;
         const cachedData = cache.get(cacheKey);
         if (cachedData && Date.now() - cachedData.timestamp < CACHE_DURATION) {
             return res.json(cachedData.data);
         }
 
-        // Make request to Windy API
+        // Make request to Windy API with all parameters
         const response = await fetch(
-            `https://api.windy.com/webcams/api/v3/webcams?lat=${lat}&lon=${lon}&radius=20&limit=5`,
+            `https://api.windy.com/webcams/api/v3/webcams?` + 
+            new URLSearchParams({
+                lat,
+                lon,
+                radius,
+                limit,
+                include: 'location'  // Add this to get location data
+            }),
             {
                 headers: {
                     'x-windy-api-key': process.env.WINDY_API_KEY
@@ -51,6 +58,7 @@ app.get('/api/webcams', async (req, res) => {
             }
         );
 
+        console.log('Windy API Request URL:', response.url);
         console.log('Windy API Response Status:', response.status);
         console.log('Windy API Response Headers:', [...response.headers.entries()]);
 
@@ -63,7 +71,7 @@ app.get('/api/webcams', async (req, res) => {
         const data = await response.json();
         console.log('Windy API Data:', data);
 
-        // Cache the response
+        // Cache the response with the new cache key
         cache.set(cacheKey, {
             timestamp: Date.now(),
             data
