@@ -1,7 +1,14 @@
-const express = require('express');
-const cors = require('cors');
-const fetch = require('node-fetch');
-require('dotenv').config();
+import express from 'express';
+import cors from 'cors';
+import fetch from 'node-fetch';
+import dotenv from 'dotenv';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+dotenv.config();
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -45,7 +52,7 @@ app.get('/api/webcams', async (req, res) => {
         );
 
         console.log('Windy API Response Status:', response.status);
-        console.log('Windy API Response Headers:', response.headers);
+        console.log('Windy API Response Headers:', [...response.headers.entries()]);
 
         if (!response.ok) {
             const errorText = await response.text();
