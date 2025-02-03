@@ -51,6 +51,12 @@ app.get('/api/webcams', async (req, res) => {
 
         // Filter webcams by actual distance and log each one's distance
         const filteredWebcams = data.webcams?.filter(webcam => {
+            // Check if webcam is defined and has a location
+            if (!webcam || !webcam.location) {
+                console.warn('Webcam or location is undefined:', webcam);
+                return false; // Skip this webcam
+            }
+
             const distance = calculateDistance(
                 parseFloat(lat),
                 parseFloat(lon),
