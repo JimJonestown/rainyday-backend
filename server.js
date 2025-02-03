@@ -30,11 +30,12 @@ const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 app.get('/api/webcams', async (req, res) => {
     try {
         const { lat, lon } = req.query;
-        const radius = 100; // Increased from 50
+        const radius = 100; // 100km radius
+        const maxDistance = 50; // Only return webcams within 50km
         
         const url = `https://api.windy.com/webcams/api/v3/webcams?lat=${lat}&lon=${lon}&radius=${radius}&limit=50&include=location,images,player&show_inactive=0&orderby=distance`;
         
-        console.log(`Requesting Windy API: ${url}`);
+        console.log(`Requesting Windy API for location: ${lat},${lon}`);
         
         const response = await fetch(url, {
             headers: {
@@ -44,10 +45,33 @@ app.get('/api/webcams', async (req, res) => {
         
         console.log(`Windy API Response Status: ${response.status}`);
         const data = await response.json();
-        console.log(`Number of webcams found: ${data.webcams?.length || 0}`);
-        console.log(`First webcam location: ${data.webcams?.[0]?.location?.city}, ${data.webcams?.[0]?.location?.country}`);
         
-        res.json(data);
+        // Filter webcams by actual distance
+        const filteredWebcams = data.webcams?.filter(webcam => {
+            const distance = calculateDistance(
+                parseFloat(lat),
+                parseFloat(lon),
+                webcam.location.latitude,
+                webcam.location.longitude
+            );
+            return distance <= maxDistance;
+        });
+
+        console.log(`Total webcams from API: ${data.webcams?.length || 0}`);
+        console.log(`Webcams within ${maxDistance}km: ${filteredWebcams?.length || 0}`);
+        if (filteredWebcams?.length > 0) {
+            console.log(`Closest webcam: ${filteredWebcams[0].location.city}, ${filteredWebcams[0].location.country} (${calculateDistance(
+                parseFloat(lat),
+                parseFloat(lon),
+                filteredWebcams[0].location.latitude,
+                filteredWebcams[0].location.longitude
+            ).toFixed(2)}km away)`);
+        }
+        
+        res.json({
+            ...data,
+            webcams: filteredWebcams || []
+        });
     } catch (error) {
         console.error('Error fetching webcams:', error);
         res.status(500).json({ error: 'Failed to fetch webcams' });
