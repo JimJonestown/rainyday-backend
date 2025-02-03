@@ -34,24 +34,21 @@ app.get('/api/webcams', async (req, res) => {
             return res.status(400).json({ error: 'Latitude and longitude are required' });
         }
 
-        // Check cache
-        const cacheKey = `${lat},${lon},${radius},${limit}`;
-        const cachedData = cache.get(cacheKey);
-        if (cachedData && Date.now() - cachedData.timestamp < CACHE_DURATION) {
-            return res.json(cachedData.data);
-        }
-
-        // Make request to Windy API with all parameters
-        const response = await fetch(
-            `https://api.windy.com/webcams/api/v3/webcams?` + 
+        // Build the URL with parameters
+        const apiUrl = `https://api.windy.com/webcams/api/v3/webcams?` + 
             new URLSearchParams({
                 lat,
                 lon,
                 radius,
                 limit,
-                include: 'location,images,player',  // Add these to get all needed data
-                orderby: 'distance'  // Order by distance from the requested coordinates
-            }),
+                include: 'location,images,player',
+                orderby: 'distance'
+            });
+
+        console.log('Requesting Windy API:', apiUrl);
+        
+        const response = await fetch(
+            apiUrl,
             {
                 headers: {
                     'x-windy-api-key': process.env.WINDY_API_KEY
@@ -59,7 +56,6 @@ app.get('/api/webcams', async (req, res) => {
             }
         );
 
-        console.log('Windy API Request URL:', response.url);
         console.log('Windy API Response Status:', response.status);
 
         if (!response.ok) {
@@ -70,8 +66,12 @@ app.get('/api/webcams', async (req, res) => {
 
         const data = await response.json();
         
-        // Filter webcams to only include those within the specified radius
+        // Log the raw response
+        console.log('Raw Windy API response:', JSON.stringify(data, null, 2));
+        
+        // Filter and log each webcam's details
         if (data.webcams) {
+            console.log(`Total webcams returned by Windy: ${data.webcams.length}`);
             data.webcams = data.webcams.filter(webcam => {
                 const distance = calculateDistance(
                     parseFloat(lat),
@@ -79,13 +79,14 @@ app.get('/api/webcams', async (req, res) => {
                     webcam.location.latitude,
                     webcam.location.longitude
                 );
+                console.log(`Webcam ${webcam.id} (${webcam.title}) at ${webcam.location.latitude},${webcam.location.longitude} - Distance: ${distance.toFixed(2)}km`);
                 return distance <= parseFloat(radius);
             });
+            console.log(`Webcams after distance filtering: ${data.webcams.length}`);
         }
 
-        console.log(`Found ${data.webcams?.length || 0} webcams within ${radius}km of ${lat},${lon}`);
-
         // Cache the filtered response
+        const cacheKey = `${lat},${lon},${radius},${limit}`;
         cache.set(cacheKey, {
             timestamp: Date.now(),
             data
