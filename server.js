@@ -49,7 +49,8 @@ app.get('/api/webcams', async (req, res) => {
                 lon,
                 radius,
                 limit,
-                include: 'location'  // Add this to get location data
+                include: 'location,images,player',  // Add these to get all needed data
+                orderby: 'distance'  // Order by distance from the requested coordinates
             }),
             {
                 headers: {
@@ -60,7 +61,6 @@ app.get('/api/webcams', async (req, res) => {
 
         console.log('Windy API Request URL:', response.url);
         console.log('Windy API Response Status:', response.status);
-        console.log('Windy API Response Headers:', [...response.headers.entries()]);
 
         if (!response.ok) {
             const errorText = await response.text();
@@ -69,9 +69,23 @@ app.get('/api/webcams', async (req, res) => {
         }
 
         const data = await response.json();
-        console.log('Windy API Data:', data);
+        
+        // Filter webcams to only include those within the specified radius
+        if (data.webcams) {
+            data.webcams = data.webcams.filter(webcam => {
+                const distance = calculateDistance(
+                    parseFloat(lat),
+                    parseFloat(lon),
+                    webcam.location.latitude,
+                    webcam.location.longitude
+                );
+                return distance <= parseFloat(radius);
+            });
+        }
 
-        // Cache the response with the new cache key
+        console.log(`Found ${data.webcams?.length || 0} webcams within ${radius}km of ${lat},${lon}`);
+
+        // Cache the filtered response
         cache.set(cacheKey, {
             timestamp: Date.now(),
             data
@@ -86,6 +100,19 @@ app.get('/api/webcams', async (req, res) => {
         });
     }
 });
+
+// Helper function to calculate distance between two points
+function calculateDistance(lat1, lon1, lat2, lon2) {
+    const R = 6371; // Earth's radius in kilometers
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = 
+        Math.sin(dLat/2) * Math.sin(dLat/2) +
+        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+        Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+}
 
 app.get('/api/webcams/:id/player', async (req, res) => {
     try {
