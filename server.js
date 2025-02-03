@@ -32,8 +32,9 @@ app.get('/api/webcams', async (req, res) => {
         const { lat, lon, maxDistance = 100 } = req.query;
         console.log(`Requesting Windy API for location: ${lat}, ${lon} with max distance: ${maxDistance}km`);
 
+        // Updated API request with additional parameters
         const response = await fetch(
-            `https://api.windy.com/webcams/api/v3/webcams?lat=${lat}&lon=${lon}&distance=${maxDistance}&include=player`,
+            `https://api.windy.com/webcams/api/v3/webcams?lat=${lat}&lon=${lon}&distance=${maxDistance}&include=location,player&limit=50`,
             {
                 headers: {
                     'x-windy-api-key': process.env.WINDY_API_KEY
@@ -43,27 +44,40 @@ app.get('/api/webcams', async (req, res) => {
 
         console.log('Windy API Response Status:', response.status);
         const data = await response.json();
+        
+        // Log the raw response structure
+        console.log('API Response Structure:', JSON.stringify(data, null, 2));
 
         if (!data.webcams || data.webcams.length === 0) {
             console.warn('No webcams found in the response.');
+            return res.json({ webcams: [] });
         }
 
         const webcams = data.webcams || [];
-        webcams.forEach(webcam => {
-            if (webcam.location) {
-                console.log(`Webcam: ${webcam.title}, Latitude: ${webcam.location.latitude}, Longitude: ${webcam.location.longitude}`);
-            } else {
-                console.warn(`Webcam: ${webcam.title} has no location data.`);
-            }
-        });
-
         const validWebcams = webcams.filter(webcam => {
-            if (webcam.location && webcam.location.latitude && webcam.location.longitude) {
-                const distance = calculateDistance(lat, lon, webcam.location.latitude, webcam.location.longitude);
-                console.log(`Webcam: ${webcam.title}, Distance: ${distance.toFixed(2)}km`);
-                return distance <= maxDistance;
+            // Log the raw webcam data to see its structure
+            console.log('Raw webcam data:', JSON.stringify(webcam, null, 2));
+
+            if (!webcam.location) {
+                console.warn(`Webcam ${webcam.title} missing location data`);
+                return false;
             }
-            return false;
+
+            const { latitude, longitude } = webcam.location;
+            if (!latitude || !longitude) {
+                console.warn(`Webcam ${webcam.title} has invalid coordinates:`, webcam.location);
+                return false;
+            }
+
+            const distance = calculateDistance(
+                parseFloat(lat), 
+                parseFloat(lon), 
+                parseFloat(latitude), 
+                parseFloat(longitude)
+            );
+            
+            console.log(`Webcam: ${webcam.title}, Location: ${latitude},${longitude}, Distance: ${distance.toFixed(2)}km`);
+            return distance <= maxDistance;
         });
 
         console.log(`Total webcams from API: ${webcams.length}`);
@@ -71,11 +85,15 @@ app.get('/api/webcams', async (req, res) => {
 
         res.json({
             ...data,
-            webcams: validWebcams || []
+            webcams: validWebcams
         });
     } catch (error) {
         console.error('Error fetching webcams:', error);
-        res.status(500).send('Internal Server Error');
+        console.error('Error details:', error.stack);
+        res.status(500).json({ 
+            error: 'Failed to fetch webcams',
+            details: error.message 
+        });
     }
 });
 
