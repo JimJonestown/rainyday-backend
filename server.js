@@ -84,8 +84,9 @@ app.get('/api/webcams/:id/player', async (req, res) => {
         const { id } = req.params;
         console.log('Fetching player for webcam ID:', id);
         
+        // Updated URL format for v3 API
         const response = await fetch(
-            `https://api.windy.com/webcams/api/v3/webcams/${id}/player`,
+            `https://api.windy.com/webcams/api/v3/webcams/${id}?include=player`,
             {
                 headers: {
                     'x-windy-api-key': process.env.WINDY_API_KEY
