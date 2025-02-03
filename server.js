@@ -46,7 +46,12 @@ app.get('/api/webcams', async (req, res) => {
         console.log(`Windy API Response Status: ${response.status}`);
         const data = await response.json();
         
-        // Filter webcams by actual distance
+        // Log the first webcam's full details to understand the response structure
+        if (data.webcams?.length > 0) {
+            console.log('First webcam details:', JSON.stringify(data.webcams[0], null, 2));
+        }
+        
+        // Filter webcams by actual distance and log each one's distance
         const filteredWebcams = data.webcams?.filter(webcam => {
             const distance = calculateDistance(
                 parseFloat(lat),
@@ -54,6 +59,7 @@ app.get('/api/webcams', async (req, res) => {
                 webcam.location.latitude,
                 webcam.location.longitude
             );
+            console.log(`Webcam ${webcam.id} at ${webcam.location.city}, ${webcam.location.country} is ${distance.toFixed(2)}km away`);
             return distance <= maxDistance;
         });
 
