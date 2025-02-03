@@ -49,8 +49,16 @@ app.get('/api/webcams', async (req, res) => {
             console.warn('No webcams found in the response.');
         }
 
+        const webcams = data.webcams || []; // Ensure we have an array
+        const validWebcams = webcams.filter(webcam => 
+            webcam.location && webcam.location.latitude && webcam.location.longitude
+        );
+
+        console.log(`Total webcams from API: ${webcams.length}`);
+        console.log(`Webcams within 100km: ${validWebcams.length}`);
+
         // Filter webcams by actual distance and log each one's distance
-        const filteredWebcams = data.webcams?.filter(webcam => {
+        const filteredWebcams = validWebcams.filter(webcam => {
             // Check if webcam is defined and has a location
             if (!webcam || !webcam.location) {
                 console.warn('Webcam or location is undefined:', webcam);
@@ -74,7 +82,7 @@ app.get('/api/webcams', async (req, res) => {
         });
 
         // Log the total number of webcams found
-        console.log(`Total webcams from API: ${data.webcams?.length || 0}`);
+        console.log(`Total webcams from API: ${webcams.length}`);
         console.log(`Webcams within ${maxDistance}km: ${filteredWebcams?.length || 0}`);
 
         res.json({
@@ -83,7 +91,7 @@ app.get('/api/webcams', async (req, res) => {
         });
     } catch (error) {
         console.error('Error fetching webcams:', error);
-        res.status(500).json({ error: 'Failed to fetch webcams' });
+        res.status(500).send('Internal Server Error');
     }
 });
 
