@@ -38,7 +38,7 @@ app.get('/api/webcams', async (req, res) => {
         
         const response = await fetch(url, {
             headers: {
-                'x-windy-key': process.env.WINDY_API_KEY
+                'x-windy-api-key': process.env.WINDY_API_KEY
             }
         });
         
