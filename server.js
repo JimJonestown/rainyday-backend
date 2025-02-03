@@ -46,7 +46,7 @@ app.get('/api/webcams', async (req, res) => {
             `https://api.windy.com/webcams/api/v3/webcams?lat=${lat}&lon=${lon}&radius=20&limit=5`,
             {
                 headers: {
-                    'x-windy-key': process.env.WINDY_API_KEY
+                    'x-windy-api-key': process.env.WINDY_API_KEY
                 }
             }
         );
