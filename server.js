@@ -50,44 +50,21 @@ app.get('/api/webcams', async (req, res) => {
         }
 
         const webcams = data.webcams || []; // Ensure we have an array
-        const validWebcams = webcams.filter(webcam => 
-            webcam.location && webcam.location.latitude && webcam.location.longitude
-        );
-
-        console.log(`Total webcams from API: ${webcams.length}`);
-        console.log(`Webcams within 100km: ${validWebcams.length}`);
-
-        // Filter webcams by actual distance and log each one's distance
-        const filteredWebcams = validWebcams.filter(webcam => {
-            // Check if webcam is defined and has a location
-            if (!webcam || !webcam.location) {
-                console.warn('Webcam or location is undefined:', webcam);
-                return false; // Skip this webcam
+        const validWebcams = webcams.filter(webcam => {
+            if (webcam.location && webcam.location.latitude && webcam.location.longitude) {
+                const distance = calculateDistance(lat, lon, webcam.location.latitude, webcam.location.longitude);
+                console.log(`Webcam: ${webcam.title}, Distance: ${distance.toFixed(2)}km`);
+                return distance <= maxDistance;
             }
-
-            const distance = calculateDistance(
-                parseFloat(lat),
-                parseFloat(lon),
-                webcam.location.latitude,
-                webcam.location.longitude
-            );
-
-            // Log all webcams with their distances for debugging
-            console.log(`[WEB CAM] ${webcam.title} at ${webcam.location.city}, ${webcam.location.country}`);
-            console.log(`  - Coordinates: (${webcam.location.latitude}, ${webcam.location.longitude})`);
-            console.log(`  - Distance: ${distance.toFixed(2)}km`);
-            console.log(`  - Target: (${lat}, ${lon})`);
-
-            return distance <= maxDistance; // Only include webcams within the max distance
+            return false; // Exclude webcams without valid location
         });
 
-        // Log the total number of webcams found
         console.log(`Total webcams from API: ${webcams.length}`);
-        console.log(`Webcams within ${maxDistance}km: ${filteredWebcams?.length || 0}`);
+        console.log(`Webcams within ${maxDistance}km: ${validWebcams.length}`);
 
         res.json({
             ...data,
-            webcams: filteredWebcams || []
+            webcams: validWebcams || []
         });
     } catch (error) {
         console.error('Error fetching webcams:', error);
