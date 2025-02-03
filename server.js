@@ -29,76 +29,28 @@ const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
 app.get('/api/webcams', async (req, res) => {
     try {
-        const { lat, lon, limit = '50', radius = '50' } = req.query;
-        if (!lat || !lon) {
-            return res.status(400).json({ error: 'Latitude and longitude are required' });
-        }
-
-        // Build the URL with parameters
-        const apiUrl = `https://api.windy.com/webcams/api/v3/webcams?` + 
-            new URLSearchParams({
-                lat,
-                lon,
-                radius,
-                limit,
-                include: 'location,images,player',
-                orderby: 'distance'
-            });
-
-        console.log('Requesting Windy API:', apiUrl);
+        const { lat, lon } = req.query;
+        const radius = 100; // Increased from 50
         
-        const response = await fetch(
-            apiUrl,
-            {
-                headers: {
-                    'x-windy-api-key': process.env.WINDY_API_KEY
-                }
+        const url = `https://api.windy.com/webcams/api/v3/webcams?lat=${lat}&lon=${lon}&radius=${radius}&limit=50&include=location,images,player&show_inactive=0&orderby=distance`;
+        
+        console.log(`Requesting Windy API: ${url}`);
+        
+        const response = await fetch(url, {
+            headers: {
+                'x-windy-key': process.env.WINDY_API_KEY
             }
-        );
-
-        console.log('Windy API Response Status:', response.status);
-
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error('Windy API Error:', errorText);
-            throw new Error(`Windy API responded with status: ${response.status}, body: ${errorText}`);
-        }
-
-        const data = await response.json();
-        
-        // Log the raw response
-        console.log('Raw Windy API response:', JSON.stringify(data, null, 2));
-        
-        // Filter and log each webcam's details
-        if (data.webcams) {
-            console.log(`Total webcams returned by Windy: ${data.webcams.length}`);
-            data.webcams = data.webcams.filter(webcam => {
-                const distance = calculateDistance(
-                    parseFloat(lat),
-                    parseFloat(lon),
-                    webcam.location.latitude,
-                    webcam.location.longitude
-                );
-                console.log(`Webcam ${webcam.id} (${webcam.title}) at ${webcam.location.latitude},${webcam.location.longitude} - Distance: ${distance.toFixed(2)}km`);
-                return distance <= parseFloat(radius);
-            });
-            console.log(`Webcams after distance filtering: ${data.webcams.length}`);
-        }
-
-        // Cache the filtered response
-        const cacheKey = `${lat},${lon},${radius},${limit}`;
-        cache.set(cacheKey, {
-            timestamp: Date.now(),
-            data
         });
-
+        
+        console.log(`Windy API Response Status: ${response.status}`);
+        const data = await response.json();
+        console.log(`Number of webcams found: ${data.webcams?.length || 0}`);
+        console.log(`First webcam location: ${data.webcams?.[0]?.location?.city}, ${data.webcams?.[0]?.location?.country}`);
+        
         res.json(data);
     } catch (error) {
-        console.error('Detailed error:', error);
-        res.status(500).json({ 
-            error: 'Failed to fetch webcam data',
-            details: error.message 
-        });
+        console.error('Error fetching webcams:', error);
+        res.status(500).json({ error: 'Failed to fetch webcams' });
     }
 });
 
