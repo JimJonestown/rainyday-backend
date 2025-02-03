@@ -8,10 +8,15 @@ const port = process.env.PORT || 3000;
 
 // Enable CORS for your frontend domain
 app.use(cors({
-    origin: 'https://rainyday.live' // Changed from localhost to your domain
+    origin: 'https://rainyday.live'
 }));
 
-// Cache for API responses (simple in-memory cache)
+// Add a test route
+app.get('/', (req, res) => {
+    res.send('Rainyday Backend Server is Running!');
+});
+
+// Cache for API responses
 const cache = new Map();
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
