@@ -44,11 +44,17 @@ app.get('/api/webcams', async (req, res) => {
             }
         );
 
+        console.log('Windy API Response Status:', response.status);
+        console.log('Windy API Response Headers:', response.headers);
+
         if (!response.ok) {
-            throw new Error(`Windy API responded with status: ${response.status}`);
+            const errorText = await response.text();
+            console.error('Windy API Error:', errorText);
+            throw new Error(`Windy API responded with status: ${response.status}, body: ${errorText}`);
         }
 
         const data = await response.json();
+        console.log('Windy API Data:', data);
 
         // Cache the response
         cache.set(cacheKey, {
@@ -58,8 +64,11 @@ app.get('/api/webcams', async (req, res) => {
 
         res.json(data);
     } catch (error) {
-        console.error('Error fetching webcams:', error);
-        res.status(500).json({ error: 'Failed to fetch webcam data' });
+        console.error('Detailed error:', error);
+        res.status(500).json({ 
+            error: 'Failed to fetch webcam data',
+            details: error.message 
+        });
     }
 });
 
