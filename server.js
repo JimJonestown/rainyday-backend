@@ -79,6 +79,31 @@ app.get('/api/webcams', async (req, res) => {
     }
 });
 
+app.get('/api/webcams/:id/player', async (req, res) => {
+    try {
+        const { id } = req.params;
+        
+        const response = await fetch(
+            `https://api.windy.com/webcams/api/v3/webcams/${id}/player`,
+            {
+                headers: {
+                    'x-windy-api-key': process.env.WINDY_API_KEY
+                }
+            }
+        );
+
+        if (!response.ok) {
+            throw new Error(`Windy API responded with status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        res.json(data);
+    } catch (error) {
+        console.error('Error fetching webcam player:', error);
+        res.status(500).json({ error: 'Failed to fetch webcam player data' });
+    }
+});
+
 app.listen(port, () => {
     console.log(`Server running on port ${port}`);
 });
