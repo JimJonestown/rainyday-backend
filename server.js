@@ -82,6 +82,7 @@ app.get('/api/webcams', async (req, res) => {
 app.get('/api/webcams/:id/player', async (req, res) => {
     try {
         const { id } = req.params;
+        console.log('Fetching player for webcam ID:', id);
         
         const response = await fetch(
             `https://api.windy.com/webcams/api/v3/webcams/${id}/player`,
@@ -92,15 +93,23 @@ app.get('/api/webcams/:id/player', async (req, res) => {
             }
         );
 
+        console.log('Player API Response Status:', response.status);
+        const responseText = await response.text();
+        console.log('Player API Response:', responseText);
+
         if (!response.ok) {
-            throw new Error(`Windy API responded with status: ${response.status}`);
+            throw new Error(`Windy API responded with status: ${response.status}, body: ${responseText}`);
         }
 
-        const data = await response.json();
+        const data = JSON.parse(responseText);
+        console.log('Player Data:', data);
         res.json(data);
     } catch (error) {
         console.error('Error fetching webcam player:', error);
-        res.status(500).json({ error: 'Failed to fetch webcam player data' });
+        res.status(500).json({ 
+            error: 'Failed to fetch webcam player data',
+            details: error.message 
+        });
     }
 });
 
