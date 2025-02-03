@@ -29,11 +29,11 @@ const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
 app.get('/api/webcams', async (req, res) => {
     try {
-        const { lat, lon, maxDistance = 100 } = req.query; // Increased default maxDistance
+        const { lat, lon, maxDistance = 100 } = req.query;
         console.log(`Requesting Windy API for location: ${lat}, ${lon} with max distance: ${maxDistance}km`);
 
         const response = await fetch(
-            `https://api.windy.com/webcams/api/v3/webcams?lat=${lat}&lon=${lon}&distance=${maxDistance}&include=player`, // Added distance parameter
+            `https://api.windy.com/webcams/api/v3/webcams?lat=${lat}&lon=${lon}&distance=${maxDistance}&include=player`,
             {
                 headers: {
                     'x-windy-api-key': process.env.WINDY_API_KEY
@@ -44,19 +44,26 @@ app.get('/api/webcams', async (req, res) => {
         console.log('Windy API Response Status:', response.status);
         const data = await response.json();
 
-        // Check if the response contains webcams
         if (!data.webcams || data.webcams.length === 0) {
             console.warn('No webcams found in the response.');
         }
 
-        const webcams = data.webcams || []; // Ensure we have an array
+        const webcams = data.webcams || [];
+        webcams.forEach(webcam => {
+            if (webcam.location) {
+                console.log(`Webcam: ${webcam.title}, Latitude: ${webcam.location.latitude}, Longitude: ${webcam.location.longitude}`);
+            } else {
+                console.warn(`Webcam: ${webcam.title} has no location data.`);
+            }
+        });
+
         const validWebcams = webcams.filter(webcam => {
             if (webcam.location && webcam.location.latitude && webcam.location.longitude) {
                 const distance = calculateDistance(lat, lon, webcam.location.latitude, webcam.location.longitude);
                 console.log(`Webcam: ${webcam.title}, Distance: ${distance.toFixed(2)}km`);
                 return distance <= maxDistance;
             }
-            return false; // Exclude webcams without valid location
+            return false;
         });
 
         console.log(`Total webcams from API: ${webcams.length}`);
