@@ -29,28 +29,26 @@ const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
 app.get('/api/webcams', async (req, res) => {
     try {
-        const { lat, lon } = req.query;
-        const radius = 100; // 100km radius
-        const maxDistance = 50; // Only return webcams within 50km
-        
-        const url = `https://api.windy.com/webcams/api/v3/webcams?lat=${lat}&lon=${lon}&radius=${radius}&limit=50&include=location,images,player&show_inactive=0&orderby=distance`;
-        
-        console.log(`Requesting Windy API for location: ${lat},${lon}`);
-        
-        const response = await fetch(url, {
-            headers: {
-                'x-windy-api-key': process.env.WINDY_API_KEY
+        const { lat, lon, maxDistance = 100 } = req.query; // Increased default maxDistance
+        console.log(`Requesting Windy API for location: ${lat}, ${lon} with max distance: ${maxDistance}km`);
+
+        const response = await fetch(
+            `https://api.windy.com/webcams/api/v3/webcams?lat=${lat}&lon=${lon}&distance=${maxDistance}&include=player`, // Added distance parameter
+            {
+                headers: {
+                    'x-windy-api-key': process.env.WINDY_API_KEY
+                }
             }
-        });
-        
-        console.log(`Windy API Response Status: ${response.status}`);
+        );
+
+        console.log('Windy API Response Status:', response.status);
         const data = await response.json();
-        
-        // Log the first webcam's full details to understand the response structure
-        if (data.webcams?.length > 0) {
-            console.log('First webcam details:', JSON.stringify(data.webcams[0], null, 2));
+
+        // Check if the response contains webcams
+        if (!data.webcams || data.webcams.length === 0) {
+            console.warn('No webcams found in the response.');
         }
-        
+
         // Filter webcams by actual distance and log each one's distance
         const filteredWebcams = data.webcams?.filter(webcam => {
             const distance = calculateDistance(
@@ -72,15 +70,7 @@ app.get('/api/webcams', async (req, res) => {
         // Log the total number of webcams found
         console.log(`Total webcams from API: ${data.webcams?.length || 0}`);
         console.log(`Webcams within ${maxDistance}km: ${filteredWebcams?.length || 0}`);
-        if (filteredWebcams?.length > 0) {
-            console.log(`Closest webcam: ${filteredWebcams[0].location.city}, ${filteredWebcams[0].location.country} (${calculateDistance(
-                parseFloat(lat),
-                parseFloat(lon),
-                filteredWebcams[0].location.latitude,
-                filteredWebcams[0].location.longitude
-            ).toFixed(2)}km away)`);
-        }
-        
+
         res.json({
             ...data,
             webcams: filteredWebcams || []
