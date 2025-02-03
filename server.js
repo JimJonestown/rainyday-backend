@@ -59,18 +59,17 @@ app.get('/api/webcams', async (req, res) => {
                 webcam.location.latitude,
                 webcam.location.longitude
             );
-            
-            // Add more detailed logging for debugging
-            if (distance <= maxDistance * 2) { // Log webcams up to 2x the max distance for verification
-                console.log(`[NEARBY] ${webcam.title} at ${webcam.location.city}, ${webcam.location.country}`);
-                console.log(`  - Coordinates: (${webcam.location.latitude}, ${webcam.location.longitude})`);
-                console.log(`  - Distance: ${distance.toFixed(2)}km`);
-                console.log(`  - Target: (${lat}, ${lon})`);
-            }
-            
-            return distance <= maxDistance;
+
+            // Log all webcams with their distances for debugging
+            console.log(`[WEB CAM] ${webcam.title} at ${webcam.location.city}, ${webcam.location.country}`);
+            console.log(`  - Coordinates: (${webcam.location.latitude}, ${webcam.location.longitude})`);
+            console.log(`  - Distance: ${distance.toFixed(2)}km`);
+            console.log(`  - Target: (${lat}, ${lon})`);
+
+            return distance <= maxDistance; // Only include webcams within the max distance
         });
 
+        // Log the total number of webcams found
         console.log(`Total webcams from API: ${data.webcams?.length || 0}`);
         console.log(`Webcams within ${maxDistance}km: ${filteredWebcams?.length || 0}`);
         if (filteredWebcams?.length > 0) {
