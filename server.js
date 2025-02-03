@@ -43,7 +43,7 @@ app.get('/api/webcams', async (req, res) => {
 
         // Make request to Windy API
         const response = await fetch(
-            `https://webcams.windy.com/api/webcams/v2/list/nearby=${lat},${lon},20/limit=5?show=webcams:location,player`,
+            `https://api.windy.com/webcams/api/v3/webcams?lat=${lat}&lon=${lon}&radius=20&limit=5`,
             {
                 headers: {
                     'x-windy-key': process.env.WINDY_API_KEY
